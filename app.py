@@ -1,24 +1,34 @@
 import streamlit as st
-import pandas.io.sql as sqlio
-import altair as alt
-import folium
-from streamlit_folium import st_folium
+import pandas as pd
+import plotly.express as px
 
-from db import conn_str
+# Load and preprocess data
+# Ensure you've replaced the path with the correct path to your dataset
+df = pd.read_csv('events v2.csv')
 
-st.title("Seattle Events")
+# Preprocess if necessary (e.g., parsing dates)
+# This example assumes the DataFrame is ready for visualization
 
-df = sqlio.read_sql_query("SELECT * FROM events", conn_str)
-st.altair_chart(
-    alt.Chart(df).mark_bar().encode(x="count()", y=alt.Y("category").sort('-x')).interactive(),
-    use_container_width=True,
-)
+# Streamlit app layout
+st.title('Seattle Events Dashboard')
 
-category = st.selectbox("Select a category", df['category'].unique())
+# Widget for category filtering - displays all event categories allowing the user to select one
+category = st.selectbox('Select Event Category', df['Type'].unique())
 
-m = folium.Map(location=[47.6062, -122.3321], zoom_start=12)
-folium.Marker([47.6062, -122.3321], popup='Seattle').add_to(m)
-st_folium(m, width=1200, height=600)
+# Filtering the dataset based on the selected category
+# This filter is applied to show detailed data or other visualizations specific to the selected category
+filtered_data = df[df['Type'] == category]
 
-df = df[df['category'] == category]
-st.write(df)
+# Plotly chart for the overall distribution of event categories (ignoring the category filter to show all categories)
+# We first calculate the count of each category, reset the index to make it a DataFrame, and then plot
+category_counts = df['Type'].value_counts().reset_index()
+category_counts.columns = ['Type', 'Count']  # Renaming columns to use in Plotly Express
+
+fig = px.bar(category_counts, x='Type', y='Count', title='Distribution of Event Categories')
+
+# Display the Plotly chart in Streamlit
+st.plotly_chart(fig)
+
+# Optional: Display filtered data in a table to provide more details about the selected category
+st.subheader(f"Events in the '{category}' category")
+st.dataframe(filtered_data)
